@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editing the Museum Visit in Adobe Premiere Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,700;1,500&family=Public+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: a single reading column like a gallery wall text, rounds marked by numbered placards, shortcuts as key caps.
+   Demo recordings sit beside the steps they show, framed like works on the wall. */
+:root{
+  --bg:#f5f6f4; --surface:#ffffff; --fg:#1e2422; --muted:#5b6662; --line:#d9dedb;
+  --accent:#1f5f55; --accent-soft:#e3efec; --key:#eef1ef; --frame:#1b1f1e;
+  --display:"Spectral", Georgia, "Times New Roman", serif;
+  --body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#151a19; --surface:#1d2321; --fg:#e6ebe9; --muted:#9aa6a2; --line:#323b38;
+  --accent:#7cc4b5; --accent-soft:#213330; --key:#262e2c; --frame:#0c0f0e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151a19; --surface:#1d2321; --fg:#e6ebe9; --muted:#9aa6a2; --line:#323b38;
+  --accent:#7cc4b5; --accent-soft:#213330; --key:#262e2c; --frame:#0c0f0e; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6;padding-inline:16px;padding-block:40px 72px}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--display);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,2.8rem);font-weight:700}
+h2{font-size:1.7rem;font-weight:700}
+h3{font-size:1.1rem;font-family:var(--body);font-weight:700;margin-top:4px}
+p{margin:0}
+a{color:var(--accent)}
+.eyebrow{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+header{display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line);padding-bottom:28px}
+header p{color:var(--muted);max-width:62ch}
+.legend{font-size:.9rem;color:var(--muted);max-width:65ch}
+section{display:flex;flex-direction:column;gap:22px}
+.round-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.placard{font-family:var(--display);font-style:italic;font-size:1rem;color:var(--accent);border:1px solid var(--accent);padding:2px 10px;border-radius:2px}
+.goal{color:var(--muted);max-width:62ch}
+.task{display:flex;flex-direction:column;gap:12px}
+ol,ul{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px}
+li{max-width:65ch}
+li > figure{margin-top:10px}
+kbd{font-family:var(--mono);font-size:.82em;background:var(--key);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;white-space:nowrap}
+.path{font-weight:600}
+.tip{background:var(--accent-soft);padding:14px 16px;border-radius:6px;font-size:.95rem;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+.tip strong{color:var(--accent)}
+.check{border-top:1px solid var(--line);padding-top:14px;font-size:.95rem}
+.check b{font-family:var(--display);font-size:1.05rem}
+.check ul{list-style:none;padding-left:0;margin-top:6px}
+.check li::before{content:"☐ ";color:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+footer{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+
+/* Media */
+figure{margin:0;display:flex;flex-direction:column;gap:8px;width:100%;max-width:880px}
+li > figure{width:calc(100% + 1.3em);margin-left:-1.3em}
+.frame{background:var(--frame);border-radius:6px;overflow:hidden;line-height:0;border:1px solid var(--line)}
+.frame video,.frame img{display:block;width:100%;height:auto;aspect-ratio:2704/1756;object-fit:contain;background:var(--frame)}
+.frame img{cursor:zoom-in}
+.frame.small img{aspect-ratio:auto}
+figcaption{font-size:.85rem;color:var(--muted);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+figcaption .tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);border:1px solid var(--line);border-radius:3px;padding:0 6px;white-space:nowrap}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+
+/* Screenshot zoom */
+dialog{border:0;padding:0;background:transparent;max-width:96vw;max-height:94vh}
+dialog::backdrop{background:rgba(0,0,0,.82)}
+dialog img{display:block;max-width:96vw;max-height:94vh;width:auto;height:auto;border-radius:4px;cursor:zoom-out}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Adobe Premiere Pro · Short-film exercise</span>
+  <h1>Editing the Museum Visit in Adobe Premiere Pro</h1>
+  <p>A step-by-step guide for turning your museum footage into a short, finished sequence in three rounds: assemble and trim, shape the story, then clean up sound and add text.</p>
+  <p class="legend">Shortcuts are shown Mac first, then Windows: <kbd>⌘</kbd> = <kbd>Ctrl</kbd>, <kbd>⌥</kbd> = <kbd>Alt</kbd>.</p>
+  <p class="legend">Each step has a short silent screen recording. Press play to watch, use the full-screen button to read small menu text, and click any screenshot to enlarge it.</p>
+</header>
+
+<section>
+  <div class="round-head"><span class="placard">Before you start</span><h2>Set up the project</h2></div>
+  <ol>
+    <li><span class="path">File › New › Project</span>, or click <b>New Project</b> on the Premiere home screen. Name it and choose where to save it.
+      <div class="pair" style="margin-top:10px;margin-left:-1.3em">
+        <figure>
+          <div class="frame"><img src="media/opening-premiere.jpg" alt="Premiere home screen with the blue New Project button at top left" loading="lazy"></div>
+          <figcaption><span class="tag">Screenshot</span>The home screen. Click <b>New Project</b>.</figcaption>
+        </figure>
+        <figure>
+          <div class="frame small"><img src="media/new-project.jpg" alt="New project dialog with project name and location fields" loading="lazy"></div>
+          <figcaption><span class="tag">Screenshot</span>Name the project and pick a save location.</figcaption>
+        </figure>
+      </div>
+    </li>
+    <li>Import your clips: <span class="path">File › Import</span> (<kbd>⌘I</kbd> / <kbd>Ctrl+I</kbd>), or drag the files into the <b>Project</b> panel.
+      <div class="pair" style="margin-top:10px;margin-left:-1.3em">
+        <figure>
+          <div class="frame"><img src="media/import-screen.jpg" alt="Premiere Import screen for browsing to footage files" loading="lazy"></div>
+          <figcaption><span class="tag">Screenshot</span>The Import screen.</figcaption>
+        </figure>
+        <figure>
+          <div class="frame"><video src="media/importing-footage.mp4" poster="media/importing-footage.jpg" controls muted playsinline preload="none"></video></div>
+          <figcaption><span class="tag">Video · 0:10</span>Bringing footage into the Project panel.</figcaption>
+        </figure>
+      </div>
+    </li>
+    <li>Drag your first clip onto the empty <b>Timeline</b>. Premiere creates a sequence that matches your footage's size and frame rate.
+      <figure>
+        <div class="frame"><video src="media/inserting-clips-into-timeline.mp4" poster="media/inserting-clips-into-timeline.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:15</span>Dragging clips from the Project panel onto the timeline.</figcaption>
+      </figure>
+    </li>
+    <li>Save often: <kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd>.</li>
+  </ol>
+  <div class="tip"><strong>The four panels you'll use most</strong>
+    <span><b>Project</b> holds your clips. <b>Source Monitor</b> (top left) previews a raw clip. <b>Program Monitor</b> (top middle) plays your edit. <b>Timeline</b> (bottom right) is where you arrange it. <b>Effect Controls</b> (top left, second tab) and <b>Properties</b> (top right) show settings for whatever clip is selected.</span></div>
+  <figure>
+    <div class="frame"><img src="media/edit-screen.jpg" alt="Empty Edit workspace: Source Monitor top left, Program Monitor top center, Properties right, Project panel bottom left, Timeline bottom right" loading="lazy"></div>
+    <figcaption><span class="tag">Screenshot</span>The Edit workspace. Source and Program monitors on top, Project panel and Timeline below, Properties on the right.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="round-head"><span class="placard">Round 1</span><h2>Assemble and trim</h2></div>
+  <p class="goal">Pick 5–6 clips. Each should start and end exactly when the action matters, and none should run longer than a few seconds.</p>
+
+  <div class="task"><h3>Fine-tune on the timeline</h3>
+  <ul>
+    <li><b>Scrub through your edit:</b> drag the playhead across the timeline ruler, and the Program Monitor shows the frame under it. From the keyboard, play with <kbd>Space</kbd>, scrub with <kbd>J</kbd> (back) <kbd>K</kbd> (stop) <kbd>L</kbd> (forward), and step frame by frame with <kbd>←</kbd> <kbd>→</kbd>.
+      <figure>
+        <div class="frame"><video src="media/scrubbing.mp4" poster="media/scrubbing.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:42</span>Scrubbing the timeline playhead to find the exact frame for a cut.</figcaption>
+      </figure>
+    </li>
+    <li><b>Drag an edge</b> with the Selection tool (<kbd>V</kbd>) to shorten the start or end of a clip.</li>
+    <li><b>Ripple trim:</b> park the playhead where you want the cut, then press <kbd>Q</kbd> to cut off everything before it or <kbd>W</kbd> for everything after. The gap closes automatically.</li>
+    <li><b>Split a clip:</b> <kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd> cuts at the playhead (or use the Razor tool, <kbd>C</kbd>).</li>
+    <li><b>Close a gap:</b> click the empty space and press <kbd>Delete</kbd>, or right-click › <span class="path">Ripple Delete</span>.
+      <figure>
+        <div class="frame"><video src="media/cutting-a-clip.mp4" poster="media/cutting-a-clip.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 1:14</span>Cutting a clip at the playhead and removing the unwanted piece.</figcaption>
+      </figure>
+    </li>
+    <li><b>Check length:</b> hover over a clip to see its duration. Zoom the timeline with <kbd>=</kbd> and <kbd>-</kbd>.</li>
+  </ul></div>
+
+  <div class="task"><h3>Trim in the Source Monitor</h3>
+  <ol>
+    <li>Double-click a clip in the Project panel to open it in the Source Monitor.
+      <figure>
+        <div class="frame"><video src="media/navigating-clip-preview.mp4" poster="media/navigating-clip-preview.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:13</span>Opening clips from the Project panel in the Source Monitor to preview them.</figcaption>
+      </figure>
+    </li>
+    <li>Play the clip with <kbd>Space</kbd> to find the moment you want. You can scrub here with the same shortcuts as on the timeline (above).</li>
+    <li>Press <kbd>I</kbd> where the action begins and <kbd>O</kbd> where it ends.
+      <figure>
+        <div class="frame"><video src="media/clip-in-and-out-trimming.mp4" poster="media/clip-in-and-out-trimming.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:52</span>Marking In and Out points in the Source Monitor, then dragging only that range onto the timeline.</figcaption>
+      </figure>
+    </li>
+    <li>Drag the image from the Source Monitor onto the timeline. Only the part between In and Out comes along.</li>
+  </ol></div>
+
+  <div class="task"><h3>Put the clips in order</h3>
+  <ul>
+    <li>Drag clips to rearrange them. Hold <kbd>⌘</kbd> / <kbd>Ctrl</kbd> while dragging to insert a clip between two others without overwriting them.
+      <figure>
+        <div class="frame"><video src="media/inserting-clips-in-between-other-clips.mp4" poster="media/inserting-clips-in-between-other-clips.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:08</span>Inserting a clip between two others; the clips after it shift right.</figcaption>
+      </figure>
+    </li>
+    <li>Make the first shot set the scene and the last shot feel like an ending. Press <kbd>Home</kbd> and <kbd>Space</kbd> to watch the whole thing from the top.</li>
+  </ul></div>
+
+  <div class="tip"><strong>Think about it: what makes a beginning or an ending?</strong>
+    <span>Openings often orient us: a wide or exterior shot, an entrance, a doorway, a sign. Endings often close something: a drawer shutting, someone walking away, a light going off, a held still shot, movement slowing down. Which of your clips does that work, and why?</span></div>
+
+  <div class="check"><b>Round 1 checklist</b><ul>
+    <li>5–6 clips on the timeline</li>
+    <li>No clip longer than a few seconds</li>
+    <li>No gaps or black frames between clips</li>
+    <li>Opening shot establishes place; closing shot feels final</li>
+  </ul></div>
+</section>
+
+<section>
+  <div class="round-head"><span class="placard">Round 2</span><h2>Shape the story</h2></div>
+  <p class="goal">Use speed and framing to steer attention: linger on a moment, move quickly through space, or point the viewer at a detail.</p>
+
+  <div class="task"><h3>Change the speed of one clip</h3>
+  <ol>
+    <li>Right-click the clip › <span class="path">Speed/Duration</span> (<kbd>⌘R</kbd> / <kbd>Ctrl+R</kbd>).</li>
+    <li>Set <b>Speed</b>: below 100% slows it down (50% = half speed), above 100% speeds it up (200% = double).</li>
+  </ol>
+  <figure>
+    <div class="frame"><video src="media/speed-up-with-right-click.mp4" poster="media/speed-up-with-right-click.jpg" controls muted playsinline preload="none"></video></div>
+    <figcaption><span class="tag">Video · 0:34</span>Right-click › Speed/Duration to change a clip's speed.</figcaption>
+  </figure>
+  <p class="legend">Quick alternative: the Rate Stretch tool (<kbd>R</kbd>). Drag a clip's edge and the speed changes to fit the new length.</p>
+  <figure>
+    <div class="frame"><video src="media/speed-up-and-slow-down-with-rate-stretch-tool.mp4" poster="media/speed-up-and-slow-down-with-rate-stretch-tool.jpg" controls muted playsinline preload="none"></video></div>
+    <figcaption><span class="tag">Video · 0:49</span>Speeding up and slowing down with the Rate Stretch tool.</figcaption>
+  </figure></div>
+
+  <div class="task"><h3>Zoom in on one detail</h3>
+  <ol>
+    <li>Select the clip and open <span class="path">Window › Effect Controls</span> (the <b>Properties</b> panel shows the same Transform settings).</li>
+    <li>Under <b>Motion</b>, raise <b>Scale</b> (try 150–200%).</li>
+    <li>Adjust <b>Position</b> to frame the object, label, or texture you want noticed. You can also click the word <b>Motion</b> and drag the image directly in the Program Monitor.
+      <figure>
+        <div class="frame"><video src="media/basic-zoom-effect.mp4" poster="media/basic-zoom-effect.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:34</span>Raising Scale and adjusting Position to zoom in on a detail.</figcaption>
+      </figure>
+    </li>
+    <li>Optional slow push-in: move to the clip's start, click the stopwatch next to Scale, then move to the end and change the value. Premiere animates between the two.
+      <figure>
+        <div class="frame"><video src="media/basic-keyframing-and-animation.mp4" poster="media/basic-keyframing-and-animation.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:54</span>Setting Scale and Position keyframes to animate a push-in on the tortoise.</figcaption>
+      </figure>
+    </li>
+  </ol>
+  <p class="legend">To crop instead: in the <b>Effects</b> panel, search “Crop,” drag it onto the clip, and adjust Left/Right/Top/Bottom in Effect Controls.</p></div>
+
+  <div class="tip"><strong>Watch the image quality</strong>
+    <span>Zooming enlarges pixels. If the detail looks soft or blocky, zoom less or pick a shot where you were physically closer to the object.</span></div>
+
+  <div class="check"><b>Round 2 checklist</b><ul>
+    <li>One clip slowed down or sped up, with a reason you can explain</li>
+    <li>One shot cropped or zoomed to reveal a detail</li>
+  </ul></div>
+</section>
+
+<section>
+  <div class="round-head"><span class="placard">Round 3</span><h2>Sound and text</h2></div>
+  <p class="goal">Remove distractions like museum chatter, then label the piece with a title or lower-third.</p>
+
+  <div class="task"><h3>Rebalance or remove the original audio</h3>
+  <ul>
+    <li><b>Rebalance a clip's volume:</b> make the audio track taller (double-click beside the track name) so you can see the thin white line running across the clip's waveform. Drag that line down to make the clip quieter or up to make it louder. A label shows the new level in dB as you drag. Use this to even out a loud clip against its neighbors or to pull chatter down under the image.
+      <figure>
+        <div class="frame"><video src="media/overall-clip-audio-adjustment-gain-levels.mp4" poster="media/overall-clip-audio-adjustment-gain-levels.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:41</span>Expanding the audio track and dragging the white volume line to rebalance a clip.</figcaption>
+      </figure>
+    </li>
+    <li><b>Rebalance only part of a clip:</b> <kbd>⌘</kbd> / <kbd>Ctrl</kbd>-click the same white line to add keyframes, then drag the line between two keyframes so the volume changes only where needed.
+      <figure>
+        <div class="frame"><video src="media/audio-keyframing.mp4" poster="media/audio-keyframing.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 1:16</span>Adding volume keyframes so the sound dips only in one stretch.</figcaption>
+      </figure>
+    </li>
+    <li><b>Remove it from one clip:</b> right-click › <span class="path">Unlink</span>, click only the audio part, and press <kbd>Delete</kbd>.
+      <figure>
+        <div class="frame"><video src="media/unlinking-and-removing-audio.mp4" poster="media/unlinking-and-removing-audio.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:29</span>Unlinking audio from video, then deleting just the audio.</figcaption>
+      </figure>
+    </li>
+    <li><b>Silence everything:</b> click the <b>M</b> (mute) button at the left of track A1.
+      <figure>
+        <div class="frame"><video src="media/muting-a-track.mp4" poster="media/muting-a-track.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:27</span>Muting an entire audio track with the M button.</figcaption>
+      </figure>
+    </li>
+  </ul></div>
+
+  <div class="task"><h3>Add a title or lower-third</h3>
+  <ol>
+    <li><b>Simple title:</b> choose the Type tool (<kbd>T</kbd>), click in the Program Monitor, and type. Premiere adds a text clip on a new video track above your footage.</li>
+    <li>Style the text in the <b>Properties</b> panel (or <span class="path">Window › Essential Graphics › Edit</span>): font, size, color, and a background or shadow for readability.
+      <figure>
+        <div class="frame"><video src="media/text-tool.mp4" poster="media/text-tool.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 0:41</span>Typing a title with the Type tool and styling it in Properties.</figcaption>
+      </figure>
+    </li>
+    <li><b>Lower-third template:</b> open the templates browser (<span class="path">Window › Essential Graphics › Browse</span>; newer versions call it <b>Graphics Templates</b>), search “lower third,” drag one onto V2 above a clip, then edit its text.
+      <figure>
+        <div class="frame"><video src="media/lower-third.mp4" poster="media/lower-third.jpg" controls muted playsinline preload="none"></video></div>
+        <figcaption><span class="tag">Video · 1:01</span>Adding a lower-third template and editing its text.</figcaption>
+      </figure>
+    </li>
+    <li>Drag the text clip's edges to set how long it stays on screen. Keep it on long enough to read twice.</li>
+  </ol></div>
+
+  <div class="tip"><strong>Placement</strong>
+    <span>Turn on safe margins (Program Monitor wrench icon › <span class="path">Safe Margins</span>) and keep text inside the inner box. A lower-third usually names a place, object, or exhibit, like a wall label for the shot.</span></div>
+
+  <div class="check"><b>Round 3 checklist</b><ul>
+    <li>Distracting audio rebalanced or removed</li>
+    <li>Title or lower-third added and readable</li>
+  </ul></div>
+</section>
+
+<section>
+  <div class="round-head"><span class="placard">Finish</span><h2>Export</h2></div>
+  <ol>
+    <li>Click the <b>Export</b> tab at the top of the window (or <kbd>⌘M</kbd> / <kbd>Ctrl+M</kbd>).</li>
+    <li>Format: <b>H.264</b>. Preset: <b>Match Source – Adaptive High Bitrate</b>.</li>
+    <li>Name the file, choose a location, and click <b>Export</b>. Watch the .mp4 once before you submit it.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Shortcut cheat sheet</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Do this</th><th>Mac</th><th>Windows</th></tr></thead>
+    <tbody>
+      <tr><td>Play / stop</td><td><kbd>Space</kbd></td><td><kbd>Space</kbd></td></tr>
+      <tr><td>Mark In / Out</td><td><kbd>I</kbd> / <kbd>O</kbd></td><td><kbd>I</kbd> / <kbd>O</kbd></td></tr>
+      <tr><td>Cut at playhead</td><td><kbd>⌘K</kbd></td><td><kbd>Ctrl+K</kbd></td></tr>
+      <tr><td>Ripple trim start / end to playhead</td><td><kbd>Q</kbd> / <kbd>W</kbd></td><td><kbd>Q</kbd> / <kbd>W</kbd></td></tr>
+      <tr><td>Speed/Duration</td><td><kbd>⌘R</kbd></td><td><kbd>Ctrl+R</kbd></td></tr>
+      <tr><td>Rate Stretch tool</td><td><kbd>R</kbd></td><td><kbd>R</kbd></td></tr>
+      <tr><td>Audio Gain</td><td><kbd>G</kbd></td><td><kbd>G</kbd></td></tr>
+      <tr><td>Type tool</td><td><kbd>T</kbd></td><td><kbd>T</kbd></td></tr>
+      <tr><td>Undo</td><td><kbd>⌘Z</kbd></td><td><kbd>Ctrl+Z</kbd></td></tr>
+      <tr><td>Export</td><td><kbd>⌘M</kbd></td><td><kbd>Ctrl+M</kbd></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>Menu names reflect recent versions of Premiere Pro; if something has moved, Adobe's <a href="https://helpx.adobe.com/premiere-pro/using/duration-speed.html">Premiere Pro user guide</a> has the current location.</footer>
+</div>
+
+<dialog id="zoom"><img alt=""></dialog>
+<script>
+  // Click a screenshot to view it full size; click again or press Esc to close.
+  const dlg = document.getElementById('zoom'), big = dlg.querySelector('img');
+  document.querySelectorAll('.frame img').forEach(img => img.addEventListener('click', () => {
+    big.src = img.src; big.alt = img.alt; dlg.showModal();
+  }));
+  dlg.addEventListener('click', () => dlg.close());
+  // Only one demo plays at a time.
+  document.querySelectorAll('video').forEach(v => v.addEventListener('play', () => {
+    document.querySelectorAll('video').forEach(o => { if (o !== v) o.pause(); });
+  }));
+</script>
+</body>
+</html>
