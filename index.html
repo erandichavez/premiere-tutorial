@@ -71,9 +71,56 @@ figcaption .tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;te
 dialog{border:0;padding:0;background:transparent;max-width:96vw;max-height:94vh}
 dialog::backdrop{background:rgba(0,0,0,.82)}
 dialog img{display:block;max-width:96vw;max-height:94vh;width:auto;height:auto;border-radius:4px;cursor:zoom-out}
+
+/* Contents: sticky sidebar on wide screens, collapsible bar on narrow ones. --p is scroll progress (0–1). */
+html{scroll-padding-top:24px}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+.layout{display:grid;grid-template-columns:220px minmax(0,880px);gap:56px;justify-content:center}
+.layout .wrap{margin:0;max-width:none}
+.toc{position:sticky;top:32px;align-self:start;max-height:calc(100vh - 64px);overflow-y:auto;font-size:.88rem;--p:0;scrollbar-width:thin}
+.toc-label{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:4px 0 12px}
+.toc-toggle{display:none}
+.toc-list{list-style:none;margin:0;padding:0;position:relative;display:block}
+.toc-list::before,.toc-list::after{content:"";position:absolute;left:0;top:0;width:2px;border-radius:1px}
+.toc-list::before{bottom:0;background:var(--line)}
+.toc-list::after{height:calc(var(--p) * 100%);background:var(--accent);transition:height .1s linear}
+.toc-list li{max-width:none}
+.toc-list a{display:block;padding:5px 0 5px 16px;color:var(--muted);text-decoration:none;line-height:1.35;border-radius:0 4px 4px 0;transition:color .15s,background-color .15s}
+.toc-list a:hover{color:var(--fg)}
+.toc-list .l2{margin-top:10px}
+.toc-list .l2:first-child{margin-top:0}
+.toc-list .l2 > a{font-family:var(--display);font-weight:700;font-size:.98rem;color:var(--fg)}
+.toc-list .l3 > a{padding-left:28px;font-size:.84rem}
+.toc-list a.in{color:var(--fg)}
+.toc-list a.active{color:var(--accent);font-weight:700;background:var(--accent-soft)}
+.toc-list .l2 > a.active{color:var(--accent)}
+@media (max-width:1179px){
+  html{scroll-padding-top:72px}
+  .layout{display:block}
+  .toc{top:0;z-index:10;max-height:none;overflow:visible;margin:-40px -16px 32px;padding:0 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+  .toc-label{display:none}
+  .toc-toggle{display:flex;align-items:center;gap:10px;width:100%;max-width:880px;margin:0 auto;padding:12px 0;background:none;border:0;color:var(--fg);font:inherit;font-size:.92rem;text-align:left;cursor:pointer;position:relative}
+  .toc-toggle .k{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;flex:none}
+  .toc-toggle .cur{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .toc-toggle .chev{flex:none;transition:transform .2s;color:var(--muted)}
+  .toc.open .toc-toggle .chev{transform:rotate(180deg)}
+  .toc-toggle::after{content:"";position:absolute;left:-16px;bottom:-1px;height:2px;width:calc((100% + 32px) * var(--p));background:var(--accent)}
+  .toc-list{display:none;max-width:880px;margin:0 auto;max-height:65vh;overflow-y:auto;padding-bottom:14px}
+  .toc.open .toc-list{display:block}
+  .toc-list::before,.toc-list::after{display:none}
+  .toc-list a{padding-left:4px}
+  .toc-list .l3 > a{padding-left:18px}
+}
+@media print{.toc{display:none}.layout{display:block}}
 </style>
 </head>
 <body>
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <p class="toc-label">Contents</p>
+  <button class="toc-toggle" type="button" aria-expanded="false"><span class="k">Contents</span><span class="cur"></span><svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <ol class="toc-list"></ol>
+</nav>
 <div class="wrap">
 <header>
   <span class="eyebrow">Adobe Premiere Pro · Short-film exercise</span>
@@ -307,6 +354,7 @@ dialog img{display:block;max-width:96vw;max-height:94vh;width:auto;height:auto;b
 
 <footer>Menu names reflect recent versions of Premiere Pro; if something has moved, Adobe's <a href="https://helpx.adobe.com/premiere-pro/using/duration-speed.html">Premiere Pro user guide</a> has the current location.</footer>
 </div>
+</div>
 
 <dialog id="zoom"><img alt=""></dialog>
 <script>
@@ -320,6 +368,49 @@ dialog img{display:block;max-width:96vw;max-height:94vh;width:auto;height:auto;b
   document.querySelectorAll('video').forEach(v => v.addEventListener('play', () => {
     document.querySelectorAll('video').forEach(o => { if (o !== v) o.pause(); });
   }));
+
+  // Contents: built from the section and step headings, so it follows any edits to the page.
+  const toc = document.querySelector('.toc'), list = toc.querySelector('.toc-list');
+  const toggle = toc.querySelector('.toc-toggle'), cur = toc.querySelector('.cur');
+  const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const heads = [...document.querySelectorAll('.wrap section h2, .wrap .task h3')];
+  const links = heads.map(h => {
+    if (!h.id) h.id = slug(h.textContent);
+    const li = document.createElement('li'), a = document.createElement('a');
+    li.className = h.tagName === 'H2' ? 'l2' : 'l3';
+    a.href = '#' + h.id; a.textContent = h.textContent;
+    li.append(a); list.append(li);
+    return a;
+  });
+  const setOpen = o => { toc.classList.toggle('open', o); toggle.setAttribute('aria-expanded', o); };
+  toggle.addEventListener('click', () => setOpen(!toc.classList.contains('open')));
+  list.addEventListener('click', e => { if (e.target.closest('a')) setOpen(false); });
+
+  function update() {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    toc.style.setProperty('--p', max > 0 ? Math.min(1, scrollY / max) : 0);
+    const line = innerWidth < 1180 ? 90 : 40;
+    let i = -1;
+    heads.forEach((h, k) => { if (h.getBoundingClientRect().top <= line + 1) i = k; });
+    if (scrollY >= max - 2) i = heads.length - 1;
+    let parent = -1;
+    for (let k = i; k >= 0; k--) if (heads[k].tagName === 'H2') { parent = k; break; }
+    links.forEach((a, k) => {
+      a.classList.toggle('active', k === i);
+      a.classList.toggle('in', k === parent);
+      if (k === i) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+    });
+    cur.textContent = i < 0 ? 'Jump to a section' : heads[i].textContent;
+    // Keep the highlighted entry visible when the sidebar itself scrolls.
+    const a = links[i];
+    if (a && innerWidth >= 1180) {
+      const t = a.offsetTop, b = t + a.offsetHeight;
+      if (t < toc.scrollTop + 40 || b > toc.scrollTop + toc.clientHeight - 20) toc.scrollTop = t - toc.clientHeight / 3;
+    }
+  }
+  addEventListener('scroll', update, { passive: true });
+  addEventListener('resize', update);
+  update();
 </script>
 </body>
 </html>
